@@ -43,15 +43,19 @@ The `addOrUpdateTs` method handles the logic for appropriately updating these ti
 
 ## API & Core Methods
 
-### Abstract / Hook Methods
-Subclasses are expected to override or customize these operations:
+### Abstract Methods
+Subclasses **must** override these operations to define how data is managed and serialized:
 
-* `updateValue(value: V, newValue: V): Boolean`: Abstract method to update an existing value instance. Returns `true` if any field was changed, `false` otherwise.
-* `getSerializationVersion(value: V): Int`: Returns the content version format (defaults to `1`).
-* `serializeKey(key: K): String`: Abstract method to convert key to string.
-* `deserializeKey(s: String): K`: Abstract method to convert string back to key object.
-* `serializeValue(value: V): String`: Abstract method to convert value to string.
-* `deserializeValue(version: Int, s: String): V`: Abstract method to convert string back to value object given a content serialization version.
+* `updateValue(value: V, newValue: V): Boolean`: Updates an existing value instance. Returns `true` if any field was changed, `false` otherwise.
+* `getSerializationVersion(value: V): Int`: Returns the content version format for serialization.
+* `serializeKey(key: K): String`: Converts key to string.
+* `deserializeKey(s: String): K`: Converts string back to key object.
+* `serializeValue(value: V): String`: Converts value to string.
+* `deserializeValue(version: Int, s: String): V`: Converts string back to value object given a content serialization version.
+
+### Helper Methods
+These methods are provided by the base class to handle standard tasks:
+
 * `serializeBookkeeping(bk: BookKeeping): String`: Converts `BookKeeping` timestamps to space-delimited string (`"created last_seen changed"`).
 * `deserializeBookkeeping(s: String): BookKeeping`: Restores `BookKeeping` object from space-delimited string.
 
@@ -87,7 +91,7 @@ namespace gkvr {
 }
 ```
 
-In this Kotlin version, these operations are provided as abstract or open "hook" methods that subclasses must or can override:
+In this Kotlin version, these operations are provided as **abstract** methods that subclasses **must** override:
 
 - `serializeKey(key: K): String`
 - `deserializeKey(s: String): K`
@@ -133,7 +137,7 @@ class ContactRegistry(config: Config) : Registry<String, Contact>(config) {
         }
         if (newValue.last_name.isNotEmpty() && value.last_name != newValue.last_name) {
             value.last_name = newValue.last_name
-            updated = True
+            updated = true
         }
         if (newValue.age != 0 && value.age != newValue.age) {
             value.age = newValue.age
@@ -141,6 +145,8 @@ class ContactRegistry(config: Config) : Registry<String, Contact>(config) {
         }
         return updated
     }
+
+    override fun getSerializationVersion(value: Contact): Int = 1
 
     override fun serializeKey(key: String): String = StringCodec.encode(key)
 

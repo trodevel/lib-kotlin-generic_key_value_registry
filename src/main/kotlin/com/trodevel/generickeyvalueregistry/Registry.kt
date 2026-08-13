@@ -42,7 +42,7 @@ abstract class Registry<K, V>(val config: Config) {
         }
     }
 
-    open fun getSerializationVersion(value: V): Int = 1
+    abstract fun getSerializationVersion(value: V): Int
 
     abstract fun serializeKey(key: K): String
 
