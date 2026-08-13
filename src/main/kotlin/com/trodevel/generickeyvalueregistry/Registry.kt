@@ -44,11 +44,11 @@ abstract class Registry<K, V>(val config: Config) {
 
     open fun getSerializationVersion(value: V): Int = 1
 
-    open fun serializeKey(key: K): String = key.toString()
+    abstract fun serializeKey(key: K): String
 
     abstract fun deserializeKey(s: String): K
 
-    open fun serializeValue(value: V): String = value.toString()
+    abstract fun serializeValue(value: V): String
 
     abstract fun deserializeValue(version: Int, s: String): V
 
