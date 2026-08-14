@@ -2,9 +2,16 @@ package com.trodevel.generickeyvalueregistry
 
 import java.io.File
 import java.io.FileNotFoundException
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
-abstract class Registry<K, V>(val config: Config) {
+abstract class Registry<K, V>(val config: Config, val needMutex: Boolean = false) {
     protected val entries: MutableMap<K, Pair<BookKeeping, V>> = mutableMapOf()
+    private val lock: ReentrantLock? = if (needMutex) ReentrantLock() else null
+
+    private inline fun <T> withLockIfRequired(action: () -> T): T {
+        return if (lock != null) lock.withLock { action() } else action()
+    }
 
     init {
         if (config.is_active) {
@@ -14,9 +21,9 @@ abstract class Registry<K, V>(val config: Config) {
 
     protected abstract fun updateValue(value: V, newValue: V): Boolean
 
-    fun addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus {
+    fun addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus = withLockIfRequired {
         val entry = entries[key]
-        return if (entry == null) {
+        if (entry == null) {
             val bk = BookKeeping(created = timestamp, last_seen = timestamp, changed = timestamp)
             entries[key] = Pair(bk, value)
             UpdateStatus.ADDED
@@ -132,8 +139,8 @@ abstract class Registry<K, V>(val config: Config) {
         }
     }
 
-    fun save() {
-        if (!config.is_active) return
+    fun save() = withLockIfRequired {
+        if (!config.is_active) return@withLockIfRequired
 
         File(config.filename).bufferedWriter().use { writer ->
             saveHeader(writer)
@@ -141,18 +148,22 @@ abstract class Registry<K, V>(val config: Config) {
         }
     }
 
-    fun has(key: K): Boolean = entries.containsKey(key)
+    fun has(key: K): Boolean = withLockIfRequired { entries.containsKey(key) }
 
-    fun get(key: K): V = entries[key]?.second ?: throw NoSuchElementException("Key '$key' not found in registry")
+    fun get(key: K): V = withLockIfRequired {
+        entries[key]?.second ?: throw NoSuchElementException("Key '$key' not found in registry")
+    }
 
-    fun getBookkeeping(key: K): BookKeeping = entries[key]?.first ?: throw NoSuchElementException("Key '$key' not found in registry")
+    fun getBookkeeping(key: K): BookKeeping = withLockIfRequired {
+        entries[key]?.first ?: throw NoSuchElementException("Key '$key' not found in registry")
+    }
 
-    fun delete(key: K) {
+    fun delete(key: K) = withLockIfRequired {
         entries.remove(key)
     }
 
-    fun expireKeys(currentTimestamp: Long) {
-        if (!config.must_expire_keys) return
+    fun expireKeys(currentTimestamp: Long) = withLockIfRequired {
+        if (!config.must_expire_keys) return@withLockIfRequired
 
         val expirationSecs = config.expiration_period_days.toLong() * 86400
         val threshold = currentTimestamp - expirationSecs
@@ -161,5 +172,7 @@ abstract class Registry<K, V>(val config: Config) {
         keysToDelete.forEach { delete(it) }
     }
 
-    fun getAllEntries(): Map<K, Pair<BookKeeping, V>> = entries
+    fun getAllEntries(): Map<K, Pair<BookKeeping, V>> = withLockIfRequired {
+        if (needMutex) entries.toMap() else entries
+    }
 }
