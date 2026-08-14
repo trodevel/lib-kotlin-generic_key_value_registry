@@ -8,6 +8,8 @@ import kotlin.concurrent.withLock
 /**
  * An abstract base class for a persistent key-value registry with built-in bookkeeping.
  *
+ * Implements [IGetter] for adding/updating entries and [ISetter] for retrieval.
+ *
  * @param K The type of the registry key.
  * @param V The type of the registry value.
  * @param config The configuration for the registry (file path, expiration, etc.).
@@ -16,7 +18,7 @@ import kotlin.concurrent.withLock
 abstract class Registry<K, V>(
     val config: Config,
     val needMutex: Boolean = false
-) {
+) : IGetter<K, V>, ISetter<K, V> {
     protected val entries: MutableMap<K, Pair<BookKeeping, V>> = mutableMapOf()
 
     // This field is effectively constant once the object is constructed.
@@ -43,7 +45,7 @@ abstract class Registry<K, V>(
      * Adds a new entry or updates an existing one associated with [key].
      * Maintains 'created', 'last_seen', and 'changed' timestamps.
      */
-    fun addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus = withLockIfRequired {
+    override fun addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus = withLockIfRequired {
         val entry = entries[key]
         if (entry == null) {
             val bk = BookKeeping(created = timestamp, last_seen = timestamp, changed = timestamp)
@@ -173,9 +175,9 @@ abstract class Registry<K, V>(
         }
     }
 
-    fun has(key: K): Boolean = withLockIfRequired { entries.containsKey(key) }
+    override fun has(key: K): Boolean = withLockIfRequired { entries.containsKey(key) }
 
-    fun get(key: K): V = withLockIfRequired {
+    override fun get(key: K): V = withLockIfRequired {
         entries[key]?.second ?: throw NoSuchElementException("Key '$key' not found in registry")
     }
 

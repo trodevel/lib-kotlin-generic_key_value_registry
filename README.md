@@ -25,10 +25,17 @@ Kotlin achieves this template-like behavior using generics:
 abstract class Registry<K, V>(
     val config: Config,
     val needMutex: Boolean = false
-) {
+) : IGetter<K, V>, ISetter<K, V> {
     // ...
 }
 ```
+
+### Core Interfaces
+
+The `Registry` implements two core interfaces to facilitate dependency injection and decouple data access from management:
+
+* `IGetter<K, V>`: Defines `addOrUpdateTs(key, value, timestamp)`. Used for pushing data into the registry.
+* `ISetter<K, V>`: Defines `has(key)` and `get(key)`. Used for querying data from the registry.
 
 ### Threading & Concurrency
 
@@ -71,9 +78,9 @@ These methods are provided by the base class to handle standard tasks:
 
 ### Operations & Lifecycle Methods
 
-* `addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus`: Adds a key if missing or updates metadata (`created`, `last_seen`, and `changed` if value modified) and value payload. Returns `UpdateStatus`.
-* `has(key: K): Boolean`: Checks whether a given key exists in the registry.
-* `get(key: K): V`: Returns the value for `key` without `BookKeeping` metadata. Throws `NoSuchElementException` if the key is not found.
+* `addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus` ([IGetter]): Adds a key if missing or updates metadata (`created`, `last_seen`, and `changed` if value modified) and value payload. Returns `UpdateStatus`.
+* `has(key: K): Boolean` ([ISetter]): Checks whether a given key exists in the registry.
+* `get(key: K): V` ([ISetter]): Returns the value for `key` without `BookKeeping` metadata. Throws `NoSuchElementException` if the key is not found.
 * `getBookkeeping(key: K): BookKeeping`: Returns the `BookKeeping` metadata object for `key`. Throws `NoSuchElementException` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
 * `expireKeys(currentTimestamp: Long)`: Purges entries whose `lastSeen` timestamp exceeds `expirationPeriodDays` (if `mustExpireKeys` is enabled in configuration).
