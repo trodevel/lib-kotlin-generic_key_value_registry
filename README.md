@@ -22,10 +22,20 @@ namespace gkvr {
 Kotlin achieves this template-like behavior using generics:
 
 ```kotlin
-abstract class Registry<K, V>(val config: Config) {
+abstract class Registry<K, V>(
+    val config: Config,
+    val needMutex: Boolean = false
+) {
     // ...
 }
 ```
+
+### Threading & Concurrency
+
+The `Registry` supports optional thread-safety. By setting `needMutex = true` in the constructor:
+- All public operations (`addOrUpdateTs`, `save`, `get`, `delete`, etc.) are protected by a `ReentrantLock`.
+- `getCopyOfAllEntries()` always returns a **defensive copy** (`toMap()`) of the internal storage. This is done regardless of the `needMutex` setting to ensure safe iteration and encapsulate the internal state.
+- When `needMutex = false` (default), the registry operates with zero synchronization overhead for operations like `get`, `has`, and `delete`.
 
 ### BookKeeping (Metadata) & UpdateStatus
 
@@ -67,7 +77,7 @@ These methods are provided by the base class to handle standard tasks:
 * `getBookkeeping(key: K): BookKeeping`: Returns the `BookKeeping` metadata object for `key`. Throws `NoSuchElementException` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
 * `expireKeys(currentTimestamp: Long)`: Purges entries whose `lastSeen` timestamp exceeds `expirationPeriodDays` (if `mustExpireKeys` is enabled in configuration).
-* `getAllEntries(): Map<K, Pair<BookKeeping, V>>`: Returns the complete map of entries mapping keys to `(BookKeeping, Value)` pairs.
+* `getCopyOfAllEntries(): Map<K, Pair<BookKeeping, V>>`: Returns a copy of the complete map of entries mapping keys to `(BookKeeping, Value)` pairs.
 * `save()`: Writes the current header and content to disk if configuration option `isActive` is enabled.
 
 ### Internal Load/Save Mechanics
@@ -128,7 +138,7 @@ data class Contact(
     var age: Int = 0
 )
 
-class ContactRegistry(config: Config) : Registry<String, Contact>(config) {
+class ContactRegistry(config: Config) : Registry<String, Contact>(config, needMutex = true) {
     override fun updateValue(value: Contact, newValue: Contact): Boolean {
         var updated = false
         if (newValue.first_name.isNotEmpty() && value.first_name != newValue.first_name) {
