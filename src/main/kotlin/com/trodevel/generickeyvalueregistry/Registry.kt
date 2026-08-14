@@ -5,6 +5,14 @@ import java.io.FileNotFoundException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+/**
+ * An abstract base class for a persistent key-value registry with built-in bookkeeping.
+ *
+ * @param K The type of the registry key.
+ * @param V The type of the registry value.
+ * @param config The configuration for the registry (file path, expiration, etc.).
+ * @param needMutex If true, the registry will use a [ReentrantLock] to ensure thread-safety for all public operations.
+ */
 abstract class Registry<K, V>(
     val config: Config,
     val needMutex: Boolean = false
@@ -25,8 +33,16 @@ abstract class Registry<K, V>(
         }
     }
 
+    /**
+     * Hook for subclasses to define how an existing value is updated with a new one.
+     * @return true if the value was actually changed, false otherwise.
+     */
     protected abstract fun updateValue(value: V, newValue: V): Boolean
 
+    /**
+     * Adds a new entry or updates an existing one associated with [key].
+     * Maintains 'created', 'last_seen', and 'changed' timestamps.
+     */
     fun addOrUpdateTs(key: K, value: V, timestamp: Long): UpdateStatus = withLockIfRequired {
         val entry = entries[key]
         if (entry == null) {
@@ -145,6 +161,9 @@ abstract class Registry<K, V>(
         }
     }
 
+    /**
+     * Serializes the entire registry to the file specified in [config].
+     */
     fun save() = withLockIfRequired {
         if (!config.is_active) return@withLockIfRequired
 
@@ -180,7 +199,10 @@ abstract class Registry<K, V>(
 
     /**
      * Returns a map of all entries.
-     * If [needMutex] is true, returns a copy to ensure thread safety during iteration.
+     *
+     * IMPORTANT: If [needMutex] is true, this returns a copy of the internal map to ensure
+     * thread-safe iteration. If [needMutex] is false, it returns the internal map directly
+     * for performance.
      */
     fun getAllEntries(): Map<K, Pair<BookKeeping, V>> = withLockIfRequired {
         if (needMutex) entries.toMap() else entries
