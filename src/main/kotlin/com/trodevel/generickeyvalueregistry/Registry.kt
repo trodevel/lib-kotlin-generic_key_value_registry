@@ -5,8 +5,14 @@ import java.io.FileNotFoundException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-abstract class Registry<K, V>(val config: Config, val needMutex: Boolean = false) {
+abstract class Registry<K, V>(
+    val config: Config,
+    val needMutex: Boolean = false
+) {
     protected val entries: MutableMap<K, Pair<BookKeeping, V>> = mutableMapOf()
+
+    // This field is effectively constant once the object is constructed.
+    // JVM JIT will optimize the 'if (lock != null)' checks based on this.
     private val lock: ReentrantLock? = if (needMutex) ReentrantLock() else null
 
     private inline fun <T> withLockIfRequired(action: () -> T): T {
@@ -172,6 +178,10 @@ abstract class Registry<K, V>(val config: Config, val needMutex: Boolean = false
         keysToDelete.forEach { delete(it) }
     }
 
+    /**
+     * Returns a map of all entries.
+     * If [needMutex] is true, returns a copy to ensure thread safety during iteration.
+     */
     fun getAllEntries(): Map<K, Pair<BookKeeping, V>> = withLockIfRequired {
         if (needMutex) entries.toMap() else entries
     }
