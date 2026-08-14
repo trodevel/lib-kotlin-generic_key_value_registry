@@ -34,8 +34,8 @@ abstract class Registry<K, V>(
 
 The `Registry` supports optional thread-safety. By setting `needMutex = true` in the constructor:
 - All public operations (`addOrUpdateTs`, `save`, `get`, `delete`, etc.) are protected by a `ReentrantLock`.
-- `getAllEntries()` returns a **defensive copy** (`toMap()`) of the internal storage to ensure safe iteration in multi-threaded environments.
-- When `needMutex = false` (default), the registry operates with zero synchronization overhead, making it ideal for single-threaded usage or high-performance scenarios where external locking is provided.
+- `getCopyOfAllEntries()` always returns a **defensive copy** (`toMap()`) of the internal storage. This is done regardless of the `needMutex` setting to ensure safe iteration and encapsulate the internal state.
+- When `needMutex = false` (default), the registry operates with zero synchronization overhead for operations like `get`, `has`, and `delete`.
 
 ### BookKeeping (Metadata) & UpdateStatus
 
@@ -77,7 +77,7 @@ These methods are provided by the base class to handle standard tasks:
 * `getBookkeeping(key: K): BookKeeping`: Returns the `BookKeeping` metadata object for `key`. Throws `NoSuchElementException` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
 * `expireKeys(currentTimestamp: Long)`: Purges entries whose `lastSeen` timestamp exceeds `expirationPeriodDays` (if `mustExpireKeys` is enabled in configuration).
-* `getAllEntries(): Map<K, Pair<BookKeeping, V>>`: Returns the complete map of entries mapping keys to `(BookKeeping, Value)` pairs. **Note:** Returns a copy if `needMutex` is true.
+* `getCopyOfAllEntries(): Map<K, Pair<BookKeeping, V>>`: Returns a copy of the complete map of entries mapping keys to `(BookKeeping, Value)` pairs.
 * `save()`: Writes the current header and content to disk if configuration option `isActive` is enabled.
 
 ### Internal Load/Save Mechanics

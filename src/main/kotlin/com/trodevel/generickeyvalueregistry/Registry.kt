@@ -198,13 +198,13 @@ abstract class Registry<K, V>(
     }
 
     /**
-     * Returns a map of all entries.
+     * Returns a copy of the internal entries map.
      *
-     * IMPORTANT: If [needMutex] is true, this returns a copy of the internal map to ensure
-     * thread-safe iteration. If [needMutex] is false, it returns the internal map directly
-     * for performance.
+     * This method always returns a new map instance to ensure that callers can safely iterate
+     * over the entries without risk of ConcurrentModificationException, and to prevent
+     * external modification of the registry's internal state.
      */
-    fun getAllEntries(): Map<K, Pair<BookKeeping, V>> = withLockIfRequired {
-        if (needMutex) entries.toMap() else entries
+    fun getCopyOfAllEntries(): Map<K, Pair<BookKeeping, V>> = withLockIfRequired {
+        entries.toMap()
     }
 }
