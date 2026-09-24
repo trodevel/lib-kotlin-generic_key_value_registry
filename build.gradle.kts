@@ -2,6 +2,9 @@ plugins {
     id("com.android.library")
 }
 
+group = "com.trodevel.generickeyvalueregistry"
+version = "1.1.0"
+
 android {
     namespace = "com.trodevel.generickeyvalueregistry"
     compileSdk = 35
