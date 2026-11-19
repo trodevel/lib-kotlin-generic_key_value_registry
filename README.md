@@ -137,6 +137,7 @@ This guarantees that fields safely remain on the same line and don't break the s
 
 ```kotlin
 import com.trodevel.generickeyvalueregistry.*
+import com.trodevel.stringcodec.StringCodec
 import org.json.JSONObject
 
 data class Contact(
