@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.trodevel.generickeyvalueregistry"
-version = "1.1.0"
+version = "1.2.0"
 
 android {
     namespace = "com.trodevel.generickeyvalueregistry"
@@ -40,4 +40,5 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(project(":stringcodec"))
 }

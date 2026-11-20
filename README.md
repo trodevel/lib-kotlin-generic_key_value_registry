@@ -118,7 +118,7 @@ In this Kotlin version, these operations are provided as **abstract** methods th
 
 ### String Codec
 
-To allow clean space-separated values on a single line, `StringCodec` provides `encode()` and `decode()` functions. These encode string keys by converting spaces to `+`, `+` to `++`, `\` to `\\`, and newline characters to literal `\n` characters prior to writing them to the file.
+To allow clean space-separated values on a single line, `StringCodec` (from the standalone `com.trodevel.stringcodec` library) provides `encode()` and `decode()` functions. These encode string keys by converting spaces to `+`, `+` to `++`, `\` to `\\`, and newline characters to literal `\n` characters prior to writing them to the file.
 
 This guarantees that fields safely remain on the same line and don't break the space-separated integrity.
 
@@ -137,6 +137,7 @@ This guarantees that fields safely remain on the same line and don't break the s
 
 ```kotlin
 import com.trodevel.generickeyvalueregistry.*
+import com.trodevel.stringcodec.StringCodec
 import org.json.JSONObject
 
 data class Contact(
